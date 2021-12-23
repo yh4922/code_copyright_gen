@@ -229,7 +229,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('生成'),
+        title: const Text('软著代码生成'),
       ),
       body: Center(
         child: Container(
