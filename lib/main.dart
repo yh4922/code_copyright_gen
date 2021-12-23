@@ -1,8 +1,14 @@
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';  //这个必须引入，因为用到了File
+import 'package:archive/archive_io.dart';
+import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
+import 'package:archive/archive.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,6 +28,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
@@ -84,8 +91,131 @@ class _MyHomePageState extends State<MyHomePage> {
       FocusScope.of(context).requestFocus(codeSuffixInputFocusNode);
       return;
     }
+
+    // 开始提取代码
+    var hideLoading = BotToast.showLoading();
+    List<FileSystemEntity>? list = await selectedDirectory?.list().toList();
+    String content = '';
+    int len = (list?.length ?? 0);
+    if (len <= 0) {
+      hideLoading();
+      BotToast.showText(text: '选中文件夹为空');
+      return;
+    }
+
+    try {
+      for (int i = 0; i < len; i++) {
+        FileSystemEntity item = list![i];
+        content += await readPath(item);
+      }
+    } catch (e) {
+      BotToast.showText(text: '文件读取失败');
+    }
+
+    // 获取系统临时文件夹
+    Directory tempDir = Directory.systemTemp;
+
+    // 提取资源写入到临时文件夹
+    ByteData data = await rootBundle.load('assets/tpl.docx');
+    File docFile = File(path.join(tempDir.path, 'copyright_gen_tpl.docx'));
+    await docFile.writeAsBytes(data.buffer.asUint8List());
+    Uint8List bytes = docFile.readAsBytesSync();
+    
+    // 解压文档
+    Archive zip = ZipDecoder().decodeBytes(bytes);
+    String zipExtName = path.join(tempDir.path, generateRandomId());
+    Directory zipDir = Directory(zipExtName);
+    await zipDir.create();
+    for (ArchiveFile file in zip.files) {
+      if (file.isFile) {
+        File f = File(path.join(zipExtName, file.name));
+        String tpl = bytesToString(file.content);
+        content = content.split('\n\r').join('<br/>');
+        content = content.split('\n').join('<br/>');
+        tpl = tpl.replaceAll('{{content}}', content);
+        tpl = tpl.replaceAll('{{header}}', headerInputController.text);
+        await f.writeAsString(tpl);
+      } else {
+        Directory d = Directory(path.join(zipExtName, file.name));
+        await d.create(recursive: true);
+      }
+    }
+
+    
+
+    // 压缩文件夹
+    File zipFile = File(path.join(tempDir.path, generateRandomId() + '.zip'));
+    ZipFileEncoder newZip = ZipFileEncoder();
+    newZip.create(zipFile.path);
+    newZip.addDirectory(zipDir, includeDirName: false);
+    newZip.close();
+
+    // 文件打包为docx
+    Directory rootDir = Directory.current;
+    int now = DateTime.now().millisecondsSinceEpoch;
+    Uint8List docData = await zipFile.readAsBytes();
+    File docFile2 = File(path.join(rootDir.path, 'output_$now.docx'));
+    await docFile2.writeAsBytes(docData);
+
+    // 删除临时释放的文件
+    await zipDir.delete(recursive: true);
+    await docFile.delete();
+    await zipFile.delete();
+    hideLoading();
+
+
+    /// 弹出确认弹框
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('提取代码成功'),
+          content: Text('文件已经生成在 ${docFile2.path}'),
+          actions: <Widget>[
+            ElevatedButton(
+              child: const Text('关闭'),
+              style: ElevatedButton.styleFrom(primary: Colors.grey),
+              onPressed: Navigator.of(context).pop,
+            ),
+            ElevatedButton(
+              child: const Text('打开文档'),
+              onPressed: () {
+                if (Platform.isWindows) {
+                  Process.run('start', [docFile2.path], runInShell: true);
+                }
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
+  /// 读取文件
+  Future<String> readPath (FileSystemEntity item) async {
+    FileStat stat = await item.stat();
+    String _content = '';
+    if (stat.type == FileSystemEntityType.directory) {
+      Directory dir = Directory(item.path);
+      List<FileSystemEntity> list = await dir.list().toList();
+      int len = list.length;
+      for (int i = 0; i < len; i++) {
+        _content += await readPath(list[i]);
+      }
+    } else {
+      File file = File(item.path);
+      String extname = path.extension(item.path);
+      extname = extname.isEmpty ? '' : extname.substring(1);
+      if (codeSuffix.contains(extname)) {
+        _content += await file.readAsString();
+      }
+    }
+
+    return _content;
+  }
+
+  /// 输入框边框
   OutlineInputBorder getOutlineInputBorder (Color color) {
     return OutlineInputBorder(
       borderRadius: const BorderRadius.all(Radius.circular(10)),
@@ -287,11 +417,28 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: const Text('开始提取代码'),
                 ),
                 onPressed: startExtractCode,
-              )
+              ),
+              const SizedBox(height: 20),
             ],
           )
         ),
       ),
     );
   }
+}
+
+
+// 生成随机ID
+String generateRandomId() {
+  var random = Random();
+  var id = '';
+  for (var i = 0; i < 10; i++) {
+    id += random.nextInt(10).toString();
+  }
+  return 'copyright_gen_' + id;
+}
+
+String bytesToString (Uint8List bytes) {
+  String string = String.fromCharCodes(bytes);
+  return string;
 }

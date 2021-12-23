@@ -13,10 +13,10 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.2
-  docxtpl: ^0.0.1 # doc文档模板
   desktop_drop: ^0.2.0 # 文件拖拽
   bot_toast: ^4.0.1 # 弹出框
   file_picker: ^4.3.0 # 文件选择
+  archive: ^3.1.6 # 压缩包
 
 dev_dependencies:
   flutter_test:
