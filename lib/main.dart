@@ -8,7 +8,9 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
-import 'package:archive/archive.dart';
+// import 'package:archive/archive.dart';
+
+import 'widget/custom_check_box.dart';
 
 void main() {
   runApp(const MyApp());
@@ -28,7 +30,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
@@ -57,6 +58,11 @@ class _MyHomePageState extends State<MyHomePage> {
   String? codeSuffixErrorText;
   /// 代码后缀类型列表
   List<String> codeSuffix = ['dart'];
+  
+
+  // 是否去除注释
+  bool removeAnnotation = true;
+  bool removeEmptyLine = true;
   
 
   @override
@@ -103,6 +109,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
+
     try {
       for (int i = 0; i < len; i++) {
         FileSystemEntity item = list![i];
@@ -111,6 +118,18 @@ class _MyHomePageState extends State<MyHomePage> {
     } catch (e) {
       BotToast.showText(text: '文件读取失败');
     }
+
+    content = content.replaceAll('<', '&#60;').replaceAll('>', '&#62;');
+    content = content.replaceAll('\n\r', '\n');
+
+    List<String> strList = [];
+    content.split('\n').forEach((item) {
+      String str = item.trimRight(); // 去除右边空格
+      strList.add(str.replaceAll(' ', '&#160;')); // 空格转义
+      strList.add('<br/>');
+    });
+
+    content = strList.join('');
 
     // 获取系统临时文件夹
     Directory tempDir = Directory.systemTemp;
@@ -130,8 +149,6 @@ class _MyHomePageState extends State<MyHomePage> {
       if (file.isFile) {
         File f = File(path.join(zipExtName, file.name));
         String tpl = bytesToString(file.content);
-        content = content.split('\n\r').join('<br/>');
-        content = content.split('\n').join('<br/>');
         tpl = tpl.replaceAll('{{content}}', content);
         tpl = tpl.replaceAll('{{header}}', headerInputController.text);
         await f.writeAsString(tpl);
@@ -140,8 +157,6 @@ class _MyHomePageState extends State<MyHomePage> {
         await d.create(recursive: true);
       }
     }
-
-    
 
     // 压缩文件夹
     File zipFile = File(path.join(tempDir.path, generateRandomId() + '.zip'));
@@ -410,7 +425,25 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              // Row(
+              //   children: [
+              //     CustomCheckBox(
+              //       value: removeAnnotation,
+              //       label: '去除注释',
+              //       onChanged: (val) {
+              //         removeAnnotation = val;
+              //       },
+              //     ),
+              //     CustomCheckBox(
+              //       value: removeEmptyLine,
+              //       label: '去除空行',
+              //       onChanged: (val) {
+              //         removeEmptyLine = val;
+              //       },
+              //     )
+              //   ],
+              // ),
+              // const SizedBox(height: 20),
               ElevatedButton(
                 child: Container(
                   height: 40, alignment: Alignment.center,
