@@ -19,7 +19,6 @@ class _CustomCheckBoxState extends State<CustomCheckBox> {
   late bool value;
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     value = widget.value;
   }
@@ -46,7 +45,7 @@ class _CustomCheckBoxState extends State<CustomCheckBox> {
                 widget.onChanged?.call(value);
               },
             ),
-            Text('${widget.label}'),
+            Text(widget.label),
           ],
         ),
       ),

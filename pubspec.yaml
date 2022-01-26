@@ -17,6 +17,7 @@ dependencies:
   bot_toast: ^4.0.1 # 弹出框
   file_picker: ^4.3.0 # 文件选择
   archive: ^3.1.6 # 压缩包
+  window_manager: ^0.1.1 # 窗口管理
 
 dev_dependencies:
   flutter_test:
