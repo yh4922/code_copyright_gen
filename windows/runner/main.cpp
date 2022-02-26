@@ -27,7 +27,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10000, 10000);
   Win32Window::Size size(500, 610);
-  if (!window.CreateAndShow(L"loading", origin, size)) {
+  if (!window.CreateAndShow(L"copyright_gen", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
