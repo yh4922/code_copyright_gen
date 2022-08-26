@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';  //这个必须引入，因为用到了File
+import 'dart:typed_data'; //这个必须引入，因为用到了File
 import 'package:archive/archive_io.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
@@ -16,7 +16,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await windowManager.ensureInitialized();
-  windowManager.waitUntilReadyToShow().then((_) async{
+  windowManager.waitUntilReadyToShow().then((_) async {
     // await windowManager.setAsFrameless();
     await windowManager.setTitle('软著代码文档生成');
     await windowManager.setSize(const Size(550, 620));
@@ -52,30 +52,33 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   /// 文档头部输入框控制器
   late TextEditingController headerInputController;
-  /// 文档头部输入框焦点控制器 
+
+  /// 文档头部输入框焦点控制器
   late FocusNode headerInputFocusNode;
   String? headerInputErrorText;
 
   /// 目录选择框颜色
   Color directoryFocusColor = Colors.grey;
+
   /// 目录拖动状态
   bool directoryDragging = false;
+
   /// 选中的目录
   Directory? selectedDirectory;
 
   /// 代码后缀类型输入控制器
   late TextEditingController codeSuffixInputController;
-  /// 代码后缀类型输入控制器焦点控制器 
+
+  /// 代码后缀类型输入控制器焦点控制器
   late FocusNode codeSuffixInputFocusNode;
   String? codeSuffixErrorText;
+
   /// 代码后缀类型列表
   List<String> codeSuffix = ['dart'];
-  
 
   // 是否去除注释
   bool removeAnnotation = true;
   bool removeEmptyLine = true;
-  
 
   @override
   void initState() {
@@ -88,24 +91,30 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   /// 提取选中目录的代码文件
-  void startExtractCode () async {
+  void startExtractCode() async {
     // 检查输入标题
     if (headerInputController.text.trim().isEmpty) {
-      setState(() {headerInputErrorText = '请输入文档头部标题';});
+      setState(() {
+        headerInputErrorText = '请输入文档头部标题';
+      });
       FocusScope.of(context).requestFocus(headerInputFocusNode);
       return;
     }
 
     // 检查选中文件夹
     if (selectedDirectory == null) {
-      setState(() {directoryFocusColor = Colors.red;});
+      setState(() {
+        directoryFocusColor = Colors.red;
+      });
       BotToast.showText(text: '请选中代码文件夹');
       return;
     }
-    
+
     // 检查代码后缀
     if (codeSuffix.isEmpty) {
-      setState(() {codeSuffixErrorText = '至少填写一种代码文件';});
+      setState(() {
+        codeSuffixErrorText = '至少填写一种代码文件';
+      });
       FocusScope.of(context).requestFocus(codeSuffixInputFocusNode);
       return;
     }
@@ -120,7 +129,6 @@ class _MyHomePageState extends State<MyHomePage> {
       BotToast.showText(text: '选中文件夹为空');
       return;
     }
-
 
     try {
       for (int i = 0; i < len; i++) {
@@ -150,7 +158,7 @@ class _MyHomePageState extends State<MyHomePage> {
       strList = strList.where((element) {
         String text = element.trim();
         if (text.isEmpty) return false;
-        
+
         text = text.replaceAll('&#160;', '');
         if (text.isEmpty) return false;
 
@@ -160,7 +168,7 @@ class _MyHomePageState extends State<MyHomePage> {
         return true;
       }).toList();
     }
-    
+
     content = strList.join('<br/>');
 
     // 获取系统临时文件夹
@@ -171,7 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
     File docFile = File(path.join(tempDir.path, 'copyright_gen_tpl.docx'));
     await docFile.writeAsBytes(data.buffer.asUint8List());
     Uint8List bytes = docFile.readAsBytesSync();
-    
+
     // 解压文档
     Archive zip = ZipDecoder().decodeBytes(bytes);
     String zipExtName = path.join(tempDir.path, generateRandomId());
@@ -210,7 +218,6 @@ class _MyHomePageState extends State<MyHomePage> {
     await zipFile.delete();
     hideLoading();
 
-
     /// 弹出确认弹框
     showDialog(
       context: context,
@@ -240,7 +247,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   /// 正则匹配数据
-  String removeAnnotationFromCode (String code) {
+  String removeAnnotationFromCode(String code) {
     String result = code;
     List<String> lines = code.split('\n');
     for (int i = 0; i < lines.length; i++) {
@@ -248,11 +255,15 @@ class _MyHomePageState extends State<MyHomePage> {
       if (line.startsWith('//')) lines[i] = ''; // 如果是// 开头就清除当前行
     }
     result = lines.join('\n');
+
+    // 删除多行注释
+    RegExp regExp = RegExp(r'/\*{1,2}[\s\S]*?\*/');
+    result = result.replaceAll(regExp, '');
     return result;
   }
 
   /// 读取文件
-  Future<String> readPath (FileSystemEntity item) async {
+  Future<String> readPath(FileSystemEntity item) async {
     FileStat stat = await item.stat();
     String _content = '';
     if (stat.type == FileSystemEntityType.directory) {
@@ -275,19 +286,15 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   /// 输入框边框
-  OutlineInputBorder getOutlineInputBorder (Color color) {
+  OutlineInputBorder getOutlineInputBorder(Color color) {
     return OutlineInputBorder(
       borderRadius: const BorderRadius.all(Radius.circular(10)),
       borderSide: BorderSide(color: color, width: 2.0),
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-
-
-
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey, width: 1.0),
@@ -305,245 +312,240 @@ class _MyHomePageState extends State<MyHomePage> {
             //     color: Colors.blue
             //   ),
             // )),
-            Expanded(child: Center(
+            Expanded(
+                child: Center(
               child: Container(
-                constraints: const BoxConstraints(
-                  maxWidth: 500
-                ),
-                child: ListView(
-                  padding: const EdgeInsets.all(8),
-                  children: [
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: headerInputController,
-                      focusNode: headerInputFocusNode,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                        labelText: "文档头部标题",
-                        labelStyle: const TextStyle(color: Colors.grey),
-                        hintText: "输入文档描述",
-                        errorText: headerInputErrorText,
-                        prefixIcon: const Icon(Icons.title),
-                        border: getOutlineInputBorder(Colors.grey),
-                        enabledBorder: getOutlineInputBorder(Colors.grey),
-                        errorBorder: getOutlineInputBorder(Colors.red),
-                        focusedBorder: getOutlineInputBorder(Colors.blue),
+                  constraints: const BoxConstraints(maxWidth: 500),
+                  child: ListView(
+                    padding: const EdgeInsets.all(8),
+                    children: [
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: headerInputController,
+                        focusNode: headerInputFocusNode,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                          labelText: "文档头部标题",
+                          labelStyle: const TextStyle(color: Colors.grey),
+                          hintText: "输入文档描述",
+                          errorText: headerInputErrorText,
+                          prefixIcon: const Icon(Icons.title),
+                          border: getOutlineInputBorder(Colors.grey),
+                          enabledBorder: getOutlineInputBorder(Colors.grey),
+                          errorBorder: getOutlineInputBorder(Colors.red),
+                          focusedBorder: getOutlineInputBorder(Colors.blue),
+                        ),
+                        onChanged: (val) {
+                          setState(() {
+                            headerInputErrorText = null;
+                          });
+                        },
                       ),
-                      onChanged: (val) {
-                        setState(() {
-                          headerInputErrorText = null;
-                        });
-                      },
-                    ),
-                    Stack(
-                      children: [
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          onHover: (e) {
-                            setState(() {
-                              directoryFocusColor = Colors.blue;
-                            });
-                          },
-                          onExit: (e) {
-                            setState(() {
-                              directoryFocusColor = Colors.grey;
-                            });
-                          },
-                          child: DropTarget(
-                            child: GestureDetector(
-                              onTap: () async {
-                                var hideLoading = BotToast.showLoading();
-                                await Future.delayed(const Duration(milliseconds: 150));
-                                FilePicker.platform.getDirectoryPath().then((value) {
-                                  hideLoading();
-                                  if (value != null) {
-                                    setState(() {
-                                      selectedDirectory = Directory(value);
-                                    });
-                                  }
-                                });
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(vertical: 20),
-                                height: 200, alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  borderRadius: const BorderRadius.all(Radius.circular(10)),
-                                  border: Border.all(width: 2, color: directoryFocusColor)
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.create_new_folder, size: 55,
-                                      color: directoryFocusColor,
-                                    ),
-                                    Text('点击选择，或者拖拽进入', style: TextStyle(color: directoryFocusColor)),
-                                    selectedDirectory == null 
-                                    ? const SizedBox() 
-                                    : Text(selectedDirectory!.path, style: TextStyle(color: directoryFocusColor))
-                                  ],
-                                ),
-                              ),
-                            ),
-                            onDragEntered: (e) {
+                      Stack(
+                        children: [
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            onHover: (e) {
                               setState(() {
                                 directoryFocusColor = Colors.blue;
-                                directoryDragging = true;
                               });
                             },
-                            onDragExited: (detail) {
+                            onExit: (e) {
                               setState(() {
                                 directoryFocusColor = Colors.grey;
-                                directoryDragging = false;
                               });
                             },
-                            onDragDone: (detail) {
-                              // print(detail.urls[0].path);
-                              Directory directory = Directory(detail.urls[0].toFilePath());
-                              if (!directory.existsSync()) {
-                                BotToast.showText(text: '不是一个有效的目录');
-                              } else {
-                                setState(() {
-                                  selectedDirectory = directory;
-                                });
-                              }
-                            }
-                          ),
-                        ),
-                        Positioned(
-                          top: 13,
-                          left: 37,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            color: Colors.white,
-                            child: Text(
-                              '打开代码文件夹', style: TextStyle(
-                                fontSize: 12,
-                                color: directoryFocusColor
-                              ),
-                            ),
-                          )
-                        ),
-                      ],
-                    ),
-                    TextField(
-                      controller: codeSuffixInputController,
-                      focusNode: codeSuffixInputFocusNode,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                        labelText: "代码后缀名",
-                        labelStyle: const TextStyle(color: Colors.grey),
-                        hintText: "输入后回车确认",
-                        errorText: codeSuffixErrorText,
-                        prefixIcon: const Icon(Icons.code),
-                        border: getOutlineInputBorder(Colors.grey),
-                        errorBorder: getOutlineInputBorder(Colors.red),
-                        enabledBorder: getOutlineInputBorder(Colors.grey),
-                        focusedBorder: getOutlineInputBorder(Colors.blue),
-                      ),
-                      onSubmitted: (val) {
-                        codeSuffixInputController.text = '';
-                        if (codeSuffix.contains(val.trim())) {
-                          BotToast.showText(text: '已存在后缀名');
-                        } else {
-                          setState(() {
-                            codeSuffix.add(val);
-                          });
-                        }
-                        FocusScope.of(context).requestFocus(codeSuffixInputFocusNode);
-                      },
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      margin: const EdgeInsets.symmetric(vertical: 5),
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
-                        border: Border.all(width: 2, color: Colors.grey)
-                      ),
-                      child: Wrap(
-                        direction: Axis.horizontal,
-                        children: [
-                          ...codeSuffix.map((suffix) {
-                            return Padding(
-                              padding: const EdgeInsets.all(5),
-                              child: Chip(
-                                label: Text(suffix),
-                                deleteIcon: const Icon(Icons.close, size: 16),
-                                deleteIconColor: Colors.black54,
-                                onDeleted: () {
+                            child: DropTarget(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    var hideLoading = BotToast.showLoading();
+                                    await Future.delayed(const Duration(milliseconds: 150));
+                                    FilePicker.platform.getDirectoryPath().then((value) {
+                                      hideLoading();
+                                      if (value != null) {
+                                        setState(() {
+                                          selectedDirectory = Directory(value);
+                                        });
+                                      }
+                                    });
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 20),
+                                    height: 200,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                                        border: Border.all(width: 2, color: directoryFocusColor)),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.create_new_folder,
+                                          size: 55,
+                                          color: directoryFocusColor,
+                                        ),
+                                        Text('点击选择，或者拖拽进入', style: TextStyle(color: directoryFocusColor)),
+                                        selectedDirectory == null
+                                            ? const SizedBox()
+                                            : Text(selectedDirectory!.path, style: TextStyle(color: directoryFocusColor))
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                onDragEntered: (e) {
                                   setState(() {
-                                    codeSuffix.remove(suffix);
+                                    directoryFocusColor = Colors.blue;
+                                    directoryDragging = true;
                                   });
                                 },
-                              ),
-                            );
-                          }).toList(),
-                          codeSuffix.isEmpty 
-                            ? const Text(' 请输入需要提取代码的文件后缀名', style: TextStyle(color: Colors.grey)) 
-                            : const SizedBox(),
+                                onDragExited: (detail) {
+                                  setState(() {
+                                    directoryFocusColor = Colors.grey;
+                                    directoryDragging = false;
+                                  });
+                                },
+                                onDragDone: (detail) {
+                                  // print(detail.urls[0].path);
+                                  Directory directory = Directory(detail.urls[0].toFilePath());
+                                  if (!directory.existsSync()) {
+                                    BotToast.showText(text: '不是一个有效的目录');
+                                  } else {
+                                    setState(() {
+                                      selectedDirectory = directory;
+                                    });
+                                  }
+                                }),
+                          ),
+                          Positioned(
+                              top: 13,
+                              left: 37,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                color: Colors.white,
+                                child: Text(
+                                  '打开代码文件夹',
+                                  style: TextStyle(fontSize: 12, color: directoryFocusColor),
+                                ),
+                              )),
                         ],
                       ),
-                    ),
-                    Row(
-                      children: [
-                        CustomCheckBox(
-                          value: removeAnnotation,
-                          label: '去除注释',
-                          onChanged: (val) {
-                            removeAnnotation = val;
-                          },
+                      TextField(
+                        controller: codeSuffixInputController,
+                        focusNode: codeSuffixInputFocusNode,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                          labelText: "代码后缀名",
+                          labelStyle: const TextStyle(color: Colors.grey),
+                          hintText: "输入后回车确认",
+                          errorText: codeSuffixErrorText,
+                          prefixIcon: const Icon(Icons.code),
+                          border: getOutlineInputBorder(Colors.grey),
+                          errorBorder: getOutlineInputBorder(Colors.red),
+                          enabledBorder: getOutlineInputBorder(Colors.grey),
+                          focusedBorder: getOutlineInputBorder(Colors.blue),
                         ),
-                        CustomCheckBox(
-                          value: removeEmptyLine,
-                          label: '去除空行',
-                          onChanged: (val) {
-                            removeEmptyLine = val;
-                          },
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      child: Container(
-                        height: 40, alignment: Alignment.center,
-                        child: const Text('开始提取代码'),
+                        onSubmitted: (val) {
+                          codeSuffixInputController.text = '';
+                          if (codeSuffix.contains(val.trim())) {
+                            BotToast.showText(text: '已存在后缀名');
+                          } else {
+                            setState(() {
+                              codeSuffix.add(val);
+                            });
+                          }
+                          FocusScope.of(context).requestFocus(codeSuffixInputFocusNode);
+                        },
                       ),
-                      onPressed: startExtractCode,
-                      // onPressed: () async {
-                      //   // 获取系统临时文件夹
-                      //   Directory tempDir = Directory.systemTemp;
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.symmetric(vertical: 5),
+                        decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.all(Radius.circular(10)),
+                            border: Border.all(width: 2, color: Colors.grey)),
+                        child: Wrap(
+                          direction: Axis.horizontal,
+                          children: [
+                            ...codeSuffix.map((suffix) {
+                              return Padding(
+                                padding: const EdgeInsets.all(5),
+                                child: Chip(
+                                  label: Text(suffix),
+                                  deleteIcon: const Icon(Icons.close, size: 16),
+                                  deleteIconColor: Colors.black54,
+                                  onDeleted: () {
+                                    setState(() {
+                                      codeSuffix.remove(suffix);
+                                    });
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                            codeSuffix.isEmpty
+                                ? const Text(' 请输入需要提取代码的文件后缀名', style: TextStyle(color: Colors.grey))
+                                : const SizedBox(),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          CustomCheckBox(
+                            value: removeAnnotation,
+                            label: '去除注释',
+                            onChanged: (val) {
+                              removeAnnotation = val;
+                            },
+                          ),
+                          CustomCheckBox(
+                            value: removeEmptyLine,
+                            label: '去除空行',
+                            onChanged: (val) {
+                              removeEmptyLine = val;
+                            },
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        child: Container(
+                          height: 40,
+                          alignment: Alignment.center,
+                          child: const Text('开始提取代码'),
+                        ),
+                        onPressed: startExtractCode,
+                        // onPressed: () async {
+                        //   // 获取系统临时文件夹
+                        //   Directory tempDir = Directory.systemTemp;
 
-                      //   // 提取资源写入到临时文件夹
-                      //   ByteData data = await rootBundle.load('assets/1.xlsx');
-                      //   File xlsxFile = File(path.join(tempDir.path, 'copyright_gen_tpl.xlsx'));
-                      //   await xlsxFile.writeAsBytes(data.buffer.asUint8List());
-                      //   Uint8List bytes = xlsxFile.readAsBytesSync();
+                        //   // 提取资源写入到临时文件夹
+                        //   ByteData data = await rootBundle.load('assets/1.xlsx');
+                        //   File xlsxFile = File(path.join(tempDir.path, 'copyright_gen_tpl.xlsx'));
+                        //   await xlsxFile.writeAsBytes(data.buffer.asUint8List());
+                        //   Uint8List bytes = xlsxFile.readAsBytesSync();
 
-                      //   // 解压文档
-                      //   Archive zip = ZipDecoder().decodeBytes(bytes);
-                      //   String zipExtName = path.join(tempDir.path, generateRandomId());
-                      //   print(zipExtName);
-                      //   Directory zipDir = Directory(zipExtName);
-                      //   await zipDir.create();
-                      //   for (ArchiveFile file in zip.files) {
-                      //     if (file.isFile) {
-                      //       File f = File(path.join(zipExtName, file.name));
-                      //       Directory d = Directory(path.dirname(f.path));
-                      //       await d.create(recursive: true);
-                      //       String tpl = bytesToString(file.content);
-                      //       await f.writeAsString(tpl);
-                      //     } else {
-                      //       Directory d = Directory(path.join(zipExtName, file.name));
-                      //       print(d);
-                      //       await d.create(recursive: true);
-                      //     }
-                      //   }
-                      // },
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                )
-              ),
+                        //   // 解压文档
+                        //   Archive zip = ZipDecoder().decodeBytes(bytes);
+                        //   String zipExtName = path.join(tempDir.path, generateRandomId());
+                        //   print(zipExtName);
+                        //   Directory zipDir = Directory(zipExtName);
+                        //   await zipDir.create();
+                        //   for (ArchiveFile file in zip.files) {
+                        //     if (file.isFile) {
+                        //       File f = File(path.join(zipExtName, file.name));
+                        //       Directory d = Directory(path.dirname(f.path));
+                        //       await d.create(recursive: true);
+                        //       String tpl = bytesToString(file.content);
+                        //       await f.writeAsString(tpl);
+                        //     } else {
+                        //       Directory d = Directory(path.join(zipExtName, file.name));
+                        //       print(d);
+                        //       await d.create(recursive: true);
+                        //     }
+                        //   }
+                        // },
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  )),
             ))
           ],
         ),
@@ -551,7 +553,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-
 
 // 生成随机ID
 String generateRandomId() {
@@ -563,7 +564,7 @@ String generateRandomId() {
   return 'copyright_gen_' + id;
 }
 
-String bytesToString (Uint8List bytes) {
+String bytesToString(Uint8List bytes) {
   String string = String.fromCharCodes(bytes);
   return string;
 }
